@@ -21,9 +21,8 @@ contract INS20 is IERC7583, ERC721, Ownable{
   string private _tick;
 
   bytes32 public root;
-
-  // for svg
-  mapping(uint256 => Tick) internal _tickets;
+  bool public isFTOpen;
+  bool public isInscribeOpen;
 
   constructor(
     string memory tick,
@@ -34,23 +33,63 @@ contract INS20 is IERC7583, ERC721, Ownable{
 
   /// @notice This is the entry point for users who have qualified to inscribe new INSC tokens.
   /// @dev Before inscribing, you need to obtain the correct Merkle proofs.
-  /// @param tokenID TokenID that will be inscribed.
+  /// @param tokenId TokenId that will be inscribed.
   /// @param proofs Merkle proofs.
-  function inscribe(uint256 tokenID, bytes32[] calldata proofs) public {
+  function inscribe(uint256 tokenId, bytes32[] calldata proofs) public {
+    require(isInscribeOpen, "Is not open");
+    require(tickNumber * mintLimit <= maxSupply, "Exceeded mint limit");
     address owner = msg.sender;
 
     // merkle verify
-    bytes32 leaf = keccak256(abi.encode(owner, tokenID));
+    bytes32 leaf = keccak256(abi.encode(owner, tokenId));
     require(
         MerkleProof.verify(proofs, root, leaf),
         "Merkle verification failed"
     );
 
-    _mint(owner, tokenID);
-    emit Inscribe(tokenID, bytes('"data:text/plain;charset=utf-8{"p":"ins-20","op":"mint","tick":"INSC","amt":"1000"}'));
+    tickNumber++;
+    _mint(owner, tokenId);
+    emit Inscribe(tokenId, bytes('"data:text/plain;charset=utf-8,{"p":"ins-20","op":"mint","tick":"INSC","amt":"1000"}'));
   }
+
+  /**
+   *  --------- overide transfer ---------
+   */
+  /// @dev embed Inscribe event into Transfer of ERC721
+  function transferFrom(address from, address to, uint256 tokenId) public override {
+    ERC721.transferFrom(from, to, tokenId);
+    emit Inscribe(tokenId, bytes('"data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC","amt":"1000"}'));
+  }
+
+  /// @dev embed Inscribe event into Transfer of ERC721
+  function safeTransferFrom(address from, address to, uint256 tokenId) public override {
+    safeTransferFrom(from, to, tokenId, "");
+  }
+
+  /// @dev embed Inscribe event into Transfer of ERC721
+  function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public override {
+    ERC721.safeTransferFrom(from, to, tokenId, data);
+    emit Inscribe(tokenId, bytes('"data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC","amt":"1000"}'));
+  }
+  
+  /// @dev Won't support tokenURI anymore.
+  function tokenURI(uint256 tokenId) public pure override returns (string memory) {
+    return "";
+  }
+
+  /**
+   *  --------- owner access ---------
+   */
 
   function setMerkleRoot(bytes32 root_) public onlyOwner {
     root = root_;
+  }
+
+  function openFT() public onlyOwner {
+    isFTOpen = true;
+  }
+
+  function openInscribe() public onlyOwner {
+    isInscribeOpen = true;
   }
 }
