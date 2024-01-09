@@ -8,8 +8,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 
-contract INS20 is IERC7583, ERC721, Ownable, IERC20 {
+contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   using Strings for uint256;
 
   bytes public constant transferInsData = bytes('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1000"}');
@@ -34,6 +35,8 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20 {
   // slot balance
   mapping(uint256 => uint256) internal _balancesSlot;
   mapping(address => mapping(address => uint256)) private _allowances;
+
+  address private _royaltyRecipient;
 
   constructor(
     string memory tick,
@@ -286,6 +289,17 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20 {
   }
 
   /**
+   *  --------- IERC2981 ---------
+   */
+
+  function royaltyInfo(
+    uint256 tokenId,
+    uint256 salePrice
+  ) external view returns (address receiver, uint256 royaltyAmount) {
+    return (_royaltyRecipient, salePrice * 100 / 3);
+  }
+
+  /**
    *  --------- owner access ---------
    */
 
@@ -299,6 +313,10 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20 {
 
   function openInscribe() public onlyOwner {
     isInscribeOpen = true;
+  }
+
+  function setRoyaltyRecipient(address r) public onlyOwner {
+    _royaltyRecipient = r;
   }
 
   /**
