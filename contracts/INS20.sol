@@ -2,13 +2,14 @@
 pragma solidity ^0.8.9;
 
 import "contracts/ERC7583/IERC7583.sol";
+import "contracts/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract INS20 is IERC7583, ERC721, Ownable{
+contract INS20 is IERC7583, ERC721, Ownable, IERC20 {
   using Strings for uint256;
 
   bytes public constant transferInsData = bytes('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1000"}');
@@ -19,7 +20,6 @@ contract INS20 is IERC7583, ERC721, Ownable{
   uint64 private tickNumber;
   uint64 private tickNumberMax; // 21,000 * 3 = 63,000
 
-  uint128 private _totalSupply;
   string private _tick;
 
   bytes32 public root;
@@ -66,16 +66,82 @@ contract INS20 is IERC7583, ERC721, Ownable{
   }
 
   /**
-   *  --------- overide balance ---------
+   *  --------- overide view functions ---------
    */
 
-  
+  /// @notice If the FT function is already open, then return the balance of FT; otherwise, return the balance of NFT.
+  function balanceOf(
+    address owner
+  ) public view override(ERC721, IERC20) returns (uint256) {
+    require(owner != address(0), "ERC20: address zero is not a valid owner");
+    return isFTOpen ? _balancesSlot[slotFT[owner]] : ERC721.balanceOf(owner);
+  }
+
+  /// @notice Has not decimal.
+  function decimals() public pure returns (uint8) {
+    return 0;
+  }
+
+  /// @notice Always return the maximum supply of FT.
+  function totalSupply() public view returns (uint256) {
+    return isFTOpen ? maxSupply : tickNumber * mintLimit;
+  }
 
   /**
    *  --------- overide approve ---------
    */
 
+  /// @notice Obtain the authorized quantity of FT.
+  function allowance(
+    address owner,
+    address spender
+  ) public view returns (uint256) {
+    return _allowances[owner][spender];
+  }
 
+  /// @notice Check if the spender's authorized limit is sufficient and deduct the amount of this expenditure from the spender's limit.
+  function _spendAllowance(
+    address owner,
+    address spender,
+    uint256 amount
+  ) internal virtual {
+    uint256 currentAllowance = allowance(owner, spender);
+    if (currentAllowance != type(uint256).max) {
+      require(currentAllowance >= amount, "ERC20: insufficient allowance");
+      unchecked {
+        _approveFT(owner, spender, currentAllowance - amount);
+      }
+    }
+  }
+
+  /// @notice The approve function specifically provided for FT.
+  /// @param owner The owner of the FT
+  /// @param spender The authorized person
+  /// @param amount The authorized amount
+  function _approveFT(
+    address owner,
+    address spender,
+    uint256 amount
+  ) internal virtual {
+    require(owner != address(0), "ERC20: approve from the zero address");
+    require(spender != address(0), "ERC20: approve to the zero address");
+
+    _allowances[owner][spender] = amount;
+    if(isFTOpen) emit Approval(owner, spender, amount);
+  }
+
+  function approve(
+    address spender,
+    uint256 amountOrTokenID
+  ) public override(ERC721, IERC20) returns(bool){
+    if (isFTOpen) {
+      address owner = msg.sender;
+      _approveFT(owner, spender, amountOrTokenID);
+    } else {
+      ERC721.approve(spender, amountOrTokenID);
+    }
+    return true;
+  }
 
   /**
    *  --------- overide transfer ---------
@@ -158,7 +224,7 @@ contract INS20 is IERC7583, ERC721, Ownable{
   }
   
   /// @dev embed Inscribe event into Transfer of ERC721
-  function transferFrom(address from, address to, uint256 tokenIdOrAmount) public override returns(bool) {
+  function transferFrom(address from, address to, uint256 tokenIdOrAmount) public override(ERC721,IERC20) returns(bool) {
     if(!isFTOpen) {
       // Moved the contents of 'recordSlot modify' here.
       if (from == address(0)) _balancesSlot[tokenIdOrAmount] = mintLimit;
@@ -178,9 +244,10 @@ contract INS20 is IERC7583, ERC721, Ownable{
         slotFT[to] = tokenIdOrAmount;
       }
     }else{
-      // TODO: _spendAllowance(from, msg.sender, tokenIdOrAmount);
+      _spendAllowance(from, msg.sender, tokenIdOrAmount);
       _transferFT(from, to, tokenIdOrAmount);
     }
+    return true;
   }
 
   /// @dev embed Inscribe event into Transfer of ERC721
