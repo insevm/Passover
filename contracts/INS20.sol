@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.20;
 
 import "contracts/ERC7583/IERC7583.sol";
 import "contracts/ERC20/IERC20.sol";
@@ -13,17 +13,18 @@ import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   using Strings for uint256;
 
-  bytes public constant transferInsData = bytes('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1000"}');
 
   uint64 public maxSupply; // 21,000,000
   uint64 public mintLimit; // 1000
   // number of tickets minted
   uint64 private tickNumber;
   uint64 private tickNumberMax; // 21,000 * 3 = 63,000
-
+  
+  bytes public constant transferInsData = bytes('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1000"}');
   string private _tick;
 
   bytes32 public root;
+  address private _royaltyRecipient;
   bool public isFTOpen;
   bool public isInscribeOpen;
 
@@ -36,13 +37,17 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   mapping(uint256 => uint256) internal _balancesSlot;
   mapping(address => mapping(address => uint256)) private _allowances;
 
-  address private _royaltyRecipient;
-
   constructor(
     string memory tick,
+    uint64 maxSupply_,
+    uint64 mintLimit_,
+    uint64 tickNumberMax_,
     address owner
-  )ERC721("ins-20", tick) Ownable(owner){
-
+  )ERC721("ins-20", tick) Ownable(owner) {
+    _tick = tick;
+    maxSupply = maxSupply_;
+    mintLimit = mintLimit_;
+    tickNumberMax = tickNumberMax_;
   }
 
   /// @notice This is the entry point for users who have qualified to inscribe new INSC tokens.
