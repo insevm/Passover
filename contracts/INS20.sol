@@ -43,7 +43,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     uint64 mintLimit_,
     uint64 tickNumberMax_,
     address owner
-  )ERC721("ins-20", tick) Ownable(owner) {
+  )ERC721("INSC Plus", tick) Ownable(owner) {
     _tick = tick;
     maxSupply = maxSupply_;
     mintLimit = mintLimit_;
@@ -63,8 +63,8 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     // merkle verify
     bytes32 leaf = keccak256(abi.encode(owner, tokenId));
     require(
-        MerkleProof.verify(proofs, root, leaf),
-        "Merkle verification failed"
+      MerkleProof.verify(proofs, root, leaf),
+      "Merkle verification failed"
     );
 
     tickNumber++;
@@ -301,7 +301,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     uint256 tokenId,
     uint256 salePrice
   ) external view returns (address receiver, uint256 royaltyAmount) {
-    return (_royaltyRecipient, salePrice * 100 / 3);
+    return (_royaltyRecipient, salePrice * 3 / 100);
   }
 
   /**
