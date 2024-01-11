@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "contracts/ERC7583/IERC7583.sol";
 import "contracts/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "contracts/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";

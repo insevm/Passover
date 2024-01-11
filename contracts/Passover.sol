@@ -17,7 +17,7 @@ contract Passover is ERC20, IERC7583, Ownable, Pausable {
   bytes32 public rootRefund;
   bytes32 public rootClaimLossesAfterRefund;
 
-  mapping (uint256 => bool) public nonceStatus;
+  mapping (bytes32 => bool) public leafStatus;
 
   constructor(
     string memory name,
@@ -37,16 +37,15 @@ contract Passover is ERC20, IERC7583, Ownable, Pausable {
   /// @param txHash The tx hash corresponding to your compensation
   /// @param proofs Merkle proof from backend
   function claimLossesDirect(uint256 tokenId, uint256 amount, bytes32 txHash, uint256 nonce, bytes32[] calldata proofs) public whenNotPaused {
-    require(!nonceStatus[nonce], "This nonce has been used");
-   
     // merkle verify
     bytes32 leaf = keccak256(abi.encode(tokenId, msg.sender, amount, txHash, nonce));
+    require(!leafStatus[leaf], "This leaf has been used");
     require(
       MerkleProof.verify(proofs, rootClaimLossesDirect, leaf),
       "Merkle verification failed"
     );
 
-    nonceStatus[nonce] = true;
+    leafStatus[leaf] = true;
     _mint(msg.sender, amount);
     emit ClaimLosses(tokenId, msg.sender, amount, txHash);
   }
@@ -58,15 +57,15 @@ contract Passover is ERC20, IERC7583, Ownable, Pausable {
   /// @param txHash The tx hash corresponding to your compensation
   /// @param proofs Merkle proof from backend
   function refund(uint256 tokenId, uint256 amount, bytes32 txHash, uint256 nonce, bytes32[] calldata proofs) public payable whenNotPaused {
-    require(!nonceStatus[nonce], "This nonce has been used");
     require(msg.value == amount, "The refund amount is incorrect");
     // merkle verify
     bytes32 leaf = keccak256(abi.encode(tokenId, msg.sender, amount, txHash, nonce));
+    require(!leafStatus[leaf], "This leaf has been used");
     require(
       MerkleProof.verify(proofs, rootRefund, leaf),
       "Merkle verification failed"
     );
-    nonceStatus[nonce] = true;
+    leafStatus[leaf] = true;
     payable(vault).transfer(msg.value);
     
     emit Inscribe(tokenId, bytes(string.concat(
@@ -86,15 +85,15 @@ contract Passover is ERC20, IERC7583, Ownable, Pausable {
   /// @param txHash The tx hash corresponding to your compensation
   /// @param proofs Merkle proof from backend
   function claimLossesAfterRefund(uint256 tokenId, uint256 amount, bytes32 txHash, uint256 nonce, bytes32[] calldata proofs) public whenNotPaused {
-    require(!nonceStatus[nonce], "This nonce has been used");
     // merkle verify
     bytes32 leaf = keccak256(abi.encode(tokenId, msg.sender, amount, txHash, nonce));
+    require(!leafStatus[leaf], "This leaf has been used");
     require(
       MerkleProof.verify(proofs, rootClaimLossesAfterRefund, leaf),
       "Merkle verification failed"
     );
 
-    nonceStatus[nonce] = true;
+    leafStatus[leaf] = true;
     _mint(msg.sender, amount);
     emit ClaimLosses(tokenId, msg.sender, amount, txHash);
   }
