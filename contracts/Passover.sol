@@ -35,6 +35,7 @@ contract Passover is ERC20, IERC7583, Ownable, Pausable {
   /// @param tokenId The TokenID corresponding to the transaction trail
   /// @param amount The quantity eligible for compensation
   /// @param txHash The tx hash corresponding to your compensation
+  /// @param nonce The nonce is used as a random number to increase the entropy source.
   /// @param proofs Merkle proof from backend
   function claimLossesDirect(uint256 tokenId, uint256 amount, bytes32 txHash, uint256 nonce, bytes32[] calldata proofs) public whenNotPaused {
     // merkle verify
@@ -55,6 +56,7 @@ contract Passover is ERC20, IERC7583, Ownable, Pausable {
   /// @param tokenId The TokenID corresponding to the transaction trail
   /// @param amount The quantity eligible for compensation
   /// @param txHash The tx hash corresponding to your compensation
+  /// @param nonce The nonce is used as a random number to increase the entropy source.
   /// @param proofs Merkle proof from backend
   function refund(uint256 tokenId, uint256 amount, bytes32 txHash, uint256 nonce, bytes32[] calldata proofs) public payable whenNotPaused {
     require(msg.value == amount, "The refund amount is incorrect");
@@ -83,6 +85,7 @@ contract Passover is ERC20, IERC7583, Ownable, Pausable {
   /// @param tokenId The TokenID corresponding to the transaction trail
   /// @param amount The quantity eligible for compensation
   /// @param txHash The tx hash corresponding to your compensation
+  /// @param nonce The nonce is used as a random number to increase the entropy source.
   /// @param proofs Merkle proof from backend
   function claimLossesAfterRefund(uint256 tokenId, uint256 amount, bytes32 txHash, uint256 nonce, bytes32[] calldata proofs) public whenNotPaused {
     // merkle verify
