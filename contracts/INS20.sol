@@ -17,47 +17,44 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   uint64 public maxSupply; // 21,000,000
   uint64 public mintLimit; // 1000
   // number of tickets minted
-  uint64 private tickNumber;
-  uint64 private tickNumberMax; // 21,000 * 3 = 63,000
+  uint64 public tickNumber;
+  uint64 public tickNumberMax; // 21,000 * 3 = 63,000
   
   bytes public constant transferInsData = bytes('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1000"}');
-  string private _tick;
 
   bytes32 public root;
   address private _royaltyRecipient;
   bool public isFTOpen;
   bool public isInscribeOpen;
 
-  // the FT slot of users. user address => slotId(insId)
+  // the FT slot of users. user address => slotId(insId), the balances of slots are in _balancesIns
   mapping (address => uint256) public slotFT;
   mapping (uint256 => bool) insTransferred;
 
   // -------- IERC20 --------
-  // slot balance
-  mapping(uint256 => uint256) internal _balancesSlot;
+  // Ins balance, include ins and slots
+  mapping(uint256 => uint256) internal _balancesIns;
   mapping(address => mapping(address => uint256)) private _allowances;
 
   constructor(
-    string memory tick,
     uint64 maxSupply_,
     uint64 mintLimit_,
-    uint64 tickNumberMax_,
     address owner
-  )ERC721("INSC Plus", tick) Ownable(owner) {
-    _tick = tick;
+  ) ERC721("INSC Plus", "INSC+") Ownable(owner) {
     maxSupply = maxSupply_;
     mintLimit = mintLimit_;
-    tickNumberMax = tickNumberMax_;
+    // 21,000,000 * 3 / 1,000 = 63,000
+    tickNumberMax = maxSupply_ * 3 / mintLimit_;
   }
 
   /// @notice This is the entry point for users who have qualified to inscribe new INSC tokens.
-  /// @dev Before inscribing, you need to obtain the correct Merkle proofs.
-  /// @dev All inscriptions must be completed before FT can be opened.
+  /// @dev Before inscribing, you need to obtain the correct Merkle proofs. The fact that the same Merkle leaf node cannot be used twice relies on the principle that the same token ID cannot be minted more than once.
+  /// @dev All inscriptions must be completed before FT be opened.
   /// @param tokenId TokenId that will be inscribed.
   /// @param proofs Merkle proofs.
   function inscribe(uint256 tokenId, bytes32[] calldata proofs) public recordSlot(address(0), msg.sender, tokenId){
     require(isInscribeOpen, "Is not open");
-    require(tickNumber * mintLimit <= maxSupply, "Exceeded mint limit");
+    require(tickNumber * mintLimit < maxSupply, "Exceeded mint limit");
     
     address owner = msg.sender;
     // merkle verify
@@ -69,7 +66,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
 
     tickNumber++;
     _mint(owner, tokenId);
-    _balancesSlot[tokenId] = mintLimit;
+    _balancesIns[tokenId] = mintLimit;
     emit Inscribe(tokenId, bytes('data:text/plain;charset=utf-8,{"p":"ins-20","op":"mint","tick":"INSC+","amt":"1000"}'));
   }
 
@@ -82,7 +79,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     address owner
   ) public view override(ERC721, IERC20) returns (uint256) {
     require(owner != address(0), "ERC20: address zero is not a valid owner");
-    return isFTOpen ? _balancesSlot[slotFT[owner]] : ERC721.balanceOf(owner);
+    return isFTOpen ? _balancesIns[slotFT[owner]] : ERC721.balanceOf(owner);
   }
 
   /// @notice Has not decimal.
@@ -174,28 +171,28 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
       require(tickNumber + 1 <= tickNumberMax, "The number of slots has reached the limit");
       _mint(to, tickNumber);
       slotFT[to] = tickNumber;
-      // _balancesSlot[slotFT[to]] = 0; // use default value
+      // _balancesIns[slotFT[to]] = 0; // use default value
       tickNumber++;
     }
 
-    uint256 fromBalance = _balancesSlot[slotFT[from]];
+    uint256 fromBalance = _balancesIns[slotFT[from]];
     require(fromBalance >= value, "Insufficient balance");
 
     unchecked {
-      _balancesSlot[slotFT[from]] = fromBalance - value;
+      _balancesIns[slotFT[from]] = fromBalance - value;
     }
-    _balancesSlot[slotFT[to]] += value;
+    _balancesIns[slotFT[to]] += value;
 
     emit Transfer(from, to, value);
     emit Inscribe(slotFT[from], bytes(string.concat(
         '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
-        _balancesSlot[slotFT[from]].toString(),
+        _balancesIns[slotFT[from]].toString(),
         '"}'
       ))
     );
     emit Inscribe(slotFT[to], bytes(string.concat(
         '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
-        _balancesSlot[slotFT[to]].toString(),
+        _balancesIns[slotFT[to]].toString(),
         '"}'
       ))
     );
@@ -210,22 +207,22 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     require(isFTOpen, "The ability of FT has not been granted");
     require(ownerOf(from) == msg.sender && ownerOf(to) == msg.sender, "Is not yours");
 
-    uint256 fromBalance = _balancesSlot[from];
+    uint256 fromBalance = _balancesIns[from];
     require(fromBalance >= amount, "Insufficient balance");
     unchecked {
-      _balancesSlot[from] = fromBalance - amount;
+      _balancesIns[from] = fromBalance - amount;
     }
-    _balancesSlot[to] += amount; 
+    _balancesIns[to] += amount; 
 
     emit Inscribe(from, bytes(string.concat(
         '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
-        _balancesSlot[from].toString(),
+        _balancesIns[from].toString(),
         '"}'
       ))
     );
     emit Inscribe(to, bytes(string.concat(
         '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
-        _balancesSlot[to].toString(),
+        _balancesIns[to].toString(),
         '"}'
       ))
     );
@@ -235,21 +232,21 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   function transferFrom(address from, address to, uint256 tokenIdOrAmount) public override(ERC721,IERC20) returns(bool) {
     if(!isFTOpen) {
       // Moved the contents of 'recordSlot modify' here.
-      if (from == address(0)) _balancesSlot[tokenIdOrAmount] = mintLimit;
+      if (from == address(0)) _balancesIns[tokenIdOrAmount] = mintLimit; // TODO: need to take a look at this line of code to determine if it is still necessary to exist.
       
       if (from != address(0) && slotFT[from] == tokenIdOrAmount){
         require(balanceOf(from) == 1, "Slot can only be transferred at the end");
         slotFT[from] = 0;
       } 
 
+      if (to != address(0) && slotFT[to] == 0) {
+        slotFT[to] = tokenIdOrAmount;
+      }
+
       ERC721.transferFrom(from, to, tokenIdOrAmount);
       if(!insTransferred[tokenIdOrAmount]) {
         emit Inscribe(tokenIdOrAmount, transferInsData);
         insTransferred[tokenIdOrAmount] = true;
-      }
-
-      if (to != address(0) && slotFT[to] == 0) {
-        slotFT[to] = tokenIdOrAmount;
       }
     }else{
       _spendAllowance(from, msg.sender, tokenIdOrAmount);
@@ -336,15 +333,16 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   /// @param tokenId TokenID of NFT
   modifier recordSlot(address from, address to, uint256 tokenId) {
     // record the balance of the slot
-    if (from == address(0)) _balancesSlot[tokenId] = mintLimit;
+    if (from == address(0)) _balancesIns[tokenId] = mintLimit;
     
     if (from != address(0) && slotFT[from] == tokenId){
       require(balanceOf(from) == 1, "Slot can only be transferred at the end");
       slotFT[from] = 0;
     } 
-    _;
+
     if (to != address(0) && slotFT[to] == 0) {
       slotFT[to] = tokenId;
     }
+    _;
   }
 }
