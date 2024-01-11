@@ -254,7 +254,7 @@ describe("Passover", function () {
       const proofUser4 = proofs[1];
       await passover.connect(user4).claimLossesDirect(tokenIdUser4, amountUser4, txHashUser4, nonce4, proofUser4);
 
-      await expect(passover.connect(user4).claimLossesDirect(tokenIdUser4, amountUser4, txHashUser4, nonce4, proofUser4)).to.be.revertedWith("This nonce has been used");
+      await expect(passover.connect(user4).claimLossesDirect(tokenIdUser4, amountUser4, txHashUser4, nonce4, proofUser4)).to.be.revertedWith("This leaf has been used");
     });
 
     it("Should succeed if all conditions are met", async function () {
@@ -397,7 +397,7 @@ describe("Passover", function () {
       const proofUser4 = proofs[1];
       await passover.connect(user4).refund(tokenIdUser4, amountUser4, txHashUser4, nonce4, proofUser4, {value: amountUser4});
 
-      await expect(passover.connect(user4).refund(tokenIdUser4, amountUser4, txHashUser4, nonce4, proofUser4, {value: amountUser4})).to.be.revertedWith("This nonce has been used");
+      await expect(passover.connect(user4).refund(tokenIdUser4, amountUser4, txHashUser4, nonce4, proofUser4, {value: amountUser4})).to.be.revertedWith("This leaf has been used");
     });
 
     it("Should succeed if all conditions are met", async function () {
@@ -526,7 +526,7 @@ describe("Passover", function () {
       const proofUser4 = proofs[1];
       await passover.connect(user4).claimLossesAfterRefund(tokenIdUser4, amountUser4, txHashUser4, nonce4, proofUser4);
 
-      await expect(passover.connect(user4).claimLossesAfterRefund(tokenIdUser4, amountUser4, txHashUser4, nonce4, proofUser4)).to.be.revertedWith("This nonce has been used");
+      await expect(passover.connect(user4).claimLossesAfterRefund(tokenIdUser4, amountUser4, txHashUser4, nonce4, proofUser4)).to.be.revertedWith("This leaf has been used");
     });
 
     it("Should succeed if all conditions are met", async function () {
