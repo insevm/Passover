@@ -13,7 +13,8 @@
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "cz-conventional-changelog": "^3.3.0",
     "hardhat": "^2.19.4",
-    "merkletreejs": "^0.3.11"
+    "merkletreejs": "^0.3.11",
+    "solidity-coverage": "^0.8.5"
   },
   "config": {
     "commitizen": {

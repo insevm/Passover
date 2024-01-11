@@ -168,28 +168,44 @@ describe("Passover", function () {
       const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
 
       await passover.connect(owner).setClaimLossesDirectRoot(root);
-      await expect(passover.connect(user3).claimLossesDirect(values[1][0],values[0][2],values[0][3],proofs[0])).to.be.revertedWith("Merkle verification failed");
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesDirect(values[1][0], amountUser3, txHashUser3, proofUser3)).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should revert if amount is wrong", async function () {
       const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
 
       await passover.connect(owner).setClaimLossesDirectRoot(root);
-      await expect(passover.connect(user3).claimLossesDirect(values[0][0],values[1][2],values[0][3],proofs[0])).to.be.revertedWith("Merkle verification failed");
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesDirect(tokenIdUser3, values[1][2], txHashUser3, proofUser3)).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should revert if txHash is wrong", async function () {
       const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
 
       await passover.connect(owner).setClaimLossesDirectRoot(root);
-      await expect(passover.connect(user3).claimLossesDirect(values[0][0],values[0][2],values[1][3],proofs[0])).to.be.revertedWith("Merkle verification failed");
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesDirect(tokenIdUser3, amountUser3, values[1][3], proofUser3)).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should revert if proofs are wrong", async function () {
       const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
 
       await passover.connect(owner).setClaimLossesDirectRoot(root);
-      await expect(passover.connect(user3).claimLossesDirect(values[0][0],values[0][2],values[0][3],proofs[1])).to.be.revertedWith("Merkle verification failed");
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesDirect(tokenIdUser3, amountUser3, txHashUser3, proofs[1])).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should revert if paused", async function () {
@@ -198,10 +214,24 @@ describe("Passover", function () {
       await passover.connect(owner).setClaimLossesDirectRoot(root);
       await passover.connect(owner).pause();
 
-      await expect(passover.connect(user3).claimLossesDirect(values[0][0],values[0][2],values[0][3],proofs[0])).to.be.revertedWithCustomError(passover, "EnforcedPause");
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesDirect(tokenIdUser3, amountUser3, txHashUser3, proofUser3)).to.be.revertedWithCustomError(passover, "EnforcedPause");
 
       await passover.connect(owner).unpause();
-      await passover.connect(user3).claimLossesDirect(values[0][0],values[0][2],values[0][3],proofs[0]);
+      await passover.connect(user3).claimLossesDirect(tokenIdUser3, amountUser3, txHashUser3, proofUser3);
+    });
+
+    it("Should revert if root is not set", async function () {
+      const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
+
+      // await passover.connect(owner).setClaimLossesDirectRoot(root);
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesDirect(tokenIdUser3, amountUser3, txHashUser3, proofUser3)).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should succeed if all conditions are met", async function () {
@@ -209,8 +239,13 @@ describe("Passover", function () {
 
       await passover.connect(owner).setClaimLossesDirectRoot(root);
 
-      await passover.connect(user4).claimLossesDirect(values[1][0],values[1][2],values[1][3],proofs[1]);
-      await passover.connect(user5).claimLossesDirect(values[2][0],values[2][2],values[2][3],proofs[2]);
+      const [tokenIdUser4, , amountUser4, txHashUser4] = values[1];
+      const proofUser4 = proofs[1];
+      await passover.connect(user4).claimLossesDirect(tokenIdUser4, amountUser4, txHashUser4, proofUser4);
+
+      const [tokenIdUser5, , amountUser5, txHashUser5] = values[2];
+      const proofUser5 = proofs[2];
+      await passover.connect(user5).claimLossesDirect(tokenIdUser5, amountUser5, txHashUser5, proofUser5);
     });
 
     it("event & state check", async function () {
@@ -238,7 +273,120 @@ describe("Passover", function () {
   });
 
   describe("Refund", function () {
+    it("Should revert if tokenId is wrong", async function () {
+      const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
 
+      await passover.connect(owner).setRefundRoot(root);
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).refund(values[1][0], amountUser3, txHashUser3, proofUser3, {value: amountUser3})).to.be.revertedWith("Merkle verification failed");
+    });
+
+    it("Should revert if amount is wrong", async function () {
+      const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
+
+      await passover.connect(owner).setRefundRoot(root);
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).refund(tokenIdUser3, values[1][2], txHashUser3, proofUser3,{value: values[1][2]})).to.be.revertedWith("Merkle verification failed");
+    });
+
+    it("Should revert if txHash is wrong", async function () {
+      const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
+
+      await passover.connect(owner).setRefundRoot(root);
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).refund(tokenIdUser3, amountUser3, values[1][3], proofUser3,{value: amountUser3})).to.be.revertedWith("Merkle verification failed");
+    });
+
+    it("Should revert if proofs are wrong", async function () {
+      const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
+
+      await passover.connect(owner).setRefundRoot(root);
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).refund(tokenIdUser3, amountUser3, txHashUser3, proofs[1],{value: amountUser3})).to.be.revertedWith("Merkle verification failed");
+    });
+
+    it("Should revert if msg.value is wrong", async function () {
+      const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
+
+      await passover.connect(owner).setRefundRoot(root);
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).refund(tokenIdUser3, amountUser3, txHashUser3, proofUser3,{value: amountUser3 - 1})).to.be.revertedWith("The refund amount is incorrect");
+    });
+
+    it("Should revert if root is not set", async function () {
+      const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
+
+      // await passover.connect(owner).setRefundRoot(root);
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).refund(tokenIdUser3, amountUser3, txHashUser3, proofUser3,{value: amountUser3})).to.be.revertedWith("Merkle verification failed");
+    });
+
+    it("Should revert if paused", async function () {
+      const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
+
+      await passover.connect(owner).setRefundRoot(root);
+      await passover.connect(owner).pause();
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).refund(tokenIdUser3, amountUser3, txHashUser3, proofUser3,{value: amountUser3})).to.be.revertedWithCustomError(passover, "EnforcedPause");
+
+      await passover.connect(owner).unpause();
+      await passover.connect(user3).refund(tokenIdUser3, amountUser3, txHashUser3, proofUser3, {value: amountUser3});
+    });
+
+    it("Should succeed if all conditions are met", async function () {
+      const { passover, owner, user4, user5, root, values, proofs} = await loadFixture(deployPassoverFixture);
+
+      await passover.connect(owner).setRefundRoot(root);
+
+      const [tokenIdUser4, , amountUser4, txHashUser4] = values[1];
+      const proofUser4 = proofs[1];
+      await passover.connect(user4).refund(tokenIdUser4, amountUser4, txHashUser4, proofUser4, {value: amountUser4});
+
+      const [tokenIdUser5, , amountUser5, txHashUser5] = values[2];
+      const proofUser5 = proofs[2];
+      await passover.connect(user5).refund(tokenIdUser5, amountUser5, txHashUser5, proofUser5, {value: amountUser5});
+    });
+
+    it("event & state check", async function () {
+      const { passover, owner, vault, user3, user5, root, values, proofs} = await loadFixture(deployPassoverFixture);
+      
+      const vaultBalanceBefore = await ethers.provider.getBalance(vault.address);
+
+      await passover.connect(owner).setRefundRoot(root);
+      
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await passover.connect(user3).refund(tokenIdUser3, amountUser3, txHashUser3, proofUser3, {value: amountUser3});
+      
+      const vaultBalanceAfter = await ethers.provider.getBalance(vault.address);
+
+      // console.log(ethers)
+      let addedBigNumber = ethers.toBigInt(amountUser3);
+
+      expect(vaultBalanceAfter).to.equal(vaultBalanceBefore + addedBigNumber);
+    });
   });
 
   describe("ClaimLossesAfterRefund", function () {
@@ -246,28 +394,44 @@ describe("Passover", function () {
       const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
 
       await passover.connect(owner).setClaimLossesAfterRefundRoot(root);
-      await expect(passover.connect(user3).claimLossesAfterRefund(values[1][0],values[0][2],values[0][3],proofs[0])).to.be.revertedWith("Merkle verification failed");
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesAfterRefund(values[1][0],amountUser3, txHashUser3, proofUser3)).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should revert if amount is wrong", async function () {
       const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
 
       await passover.connect(owner).setClaimLossesAfterRefundRoot(root);
-      await expect(passover.connect(user3).claimLossesAfterRefund(values[0][0],values[1][2],values[0][3],proofs[0])).to.be.revertedWith("Merkle verification failed");
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesAfterRefund(tokenIdUser3, values[1][1], txHashUser3, proofUser3)).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should revert if txHash is wrong", async function () {
       const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
 
       await passover.connect(owner).setClaimLossesAfterRefundRoot(root);
-      await expect(passover.connect(user3).claimLossesAfterRefund(values[0][0],values[0][2],values[1][3],proofs[0])).to.be.revertedWith("Merkle verification failed");
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesAfterRefund(tokenIdUser3, amountUser3, values[1][3], proofUser3)).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should revert if proofs are wrong", async function () {
       const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
 
       await passover.connect(owner).setClaimLossesAfterRefundRoot(root);
-      await expect(passover.connect(user3).claimLossesAfterRefund(values[0][0],values[0][2],values[0][3],proofs[1])).to.be.revertedWith("Merkle verification failed");
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesAfterRefund(tokenIdUser3, amountUser3, txHashUser3, proofs[1])).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should revert if paused", async function () {
@@ -276,10 +440,24 @@ describe("Passover", function () {
       await passover.connect(owner).setClaimLossesAfterRefundRoot(root);
       await passover.connect(owner).pause();
 
-      await expect(passover.connect(user3).claimLossesAfterRefund(values[0][0],values[0][2],values[0][3],proofs[0])).to.be.revertedWithCustomError(passover, "EnforcedPause");
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesAfterRefund(tokenIdUser3, amountUser3, txHashUser3, proofUser3)).to.be.revertedWithCustomError(passover, "EnforcedPause");
 
       await passover.connect(owner).unpause();
-      await passover.connect(user3).claimLossesAfterRefund(values[0][0],values[0][2],values[0][3],proofs[0]);
+      await passover.connect(user3).claimLossesAfterRefund(tokenIdUser3, amountUser3, txHashUser3, proofUser3);
+    });
+
+    it("Should revert if root is not set", async function () {
+      const { passover, owner, user3 , root, values, proofs} = await loadFixture(deployPassoverFixture);
+
+      // await passover.connect(owner).setClaimLossesAfterRefundRoot(root);
+
+      const [tokenIdUser3, , amountUser3, txHashUser3] = values[0];
+      const proofUser3 = proofs[0];
+
+      await expect(passover.connect(user3).claimLossesAfterRefund(tokenIdUser3, amountUser3, txHashUser3, proofUser3)).to.be.revertedWith("Merkle verification failed");
     });
 
     it("Should succeed if all conditions are met", async function () {
@@ -287,8 +465,13 @@ describe("Passover", function () {
 
       await passover.connect(owner).setClaimLossesAfterRefundRoot(root);
 
-      await passover.connect(user4).claimLossesAfterRefund(values[1][0],values[1][2],values[1][3],proofs[1]);
-      await passover.connect(user5).claimLossesAfterRefund(values[2][0],values[2][2],values[2][3],proofs[2]);
+      const [tokenIdUser4, , amountUser4, txHashUser4] = values[1];
+      const proofUser4 = proofs[1];
+      await passover.connect(user4).claimLossesAfterRefund(tokenIdUser4, amountUser4, txHashUser4, proofUser4);
+      
+      const [tokenIdUser5, , amountUser5, txHashUser5] = values[2];
+      const proofUser5 = proofs[2];
+      await passover.connect(user5).claimLossesAfterRefund(tokenIdUser5, amountUser5, txHashUser5, proofUser5);
     });
 
     it("event & state check", async function () {
