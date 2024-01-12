@@ -284,4 +284,46 @@ describe("INSC+", function () {
       
     });
   });
+
+  describe("Transfer", function () {
+    describe("transferFrom", function () {
+      
+    });
+
+    describe("safeTransferFrom", function () {
+      
+    });
+
+    describe("transfer", function () {
+      
+    });
+
+    describe("waterToWine", function () {
+      
+    });
+  });
+
+  describe("tokenURI", function () {
+    it("Should revert if the tokenId is not minted", async function () {
+      const { insc } = await loadFixture(deployINSCFixture);
+
+      await expect(insc.tokenURI(1)).to.revertedWithCustomError(insc, "ERC721NonexistentToken");
+    });
+
+    it.only("TokenURI should succeed", async function () {
+      const { insc, owner, user1, root, values, proofs } = await loadFixture(deployINSCFixture);
+
+      await insc.connect(owner).setMerkleRoot(root);
+      await insc.connect(owner).openInscribe();
+
+      const [, tokenIdUser1] = values[0];
+      const proofUser1 = proofs[0];
+      await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+
+      console.log(await insc.tokenURI(tokenIdUser1));
+
+      await insc.connect(owner).openFT();
+      console.log(await insc.tokenURI(tokenIdUser1));
+    });
+  });  
 })
