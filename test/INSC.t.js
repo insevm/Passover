@@ -375,11 +375,39 @@ describe("INSC+", function () {
         
         await insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1_);
         await insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1);
+
+        expect(await insc.balanceOf(user2.address)).to.be.equal(2);
+        await insc.connect(owner).openFT();
+        // only return the slot balance
+        expect(await insc.balanceOf(user2.address)).to.be.equal(1000);
       });
     });
 
     describe("safeTransferFrom", function () {
-      
+      it("Event check", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await expect(insc.connect(user2).safeTransferFrom(user1.address, user2.address, tokenIdUser1_)).to.be.revertedWithCustomError(insc, "ERC721InsufficientApproval");
+
+        await insc.connect(user1).setApprovalForAll(user2.address, true);
+        
+        const hexString = '0x' + Buffer.from('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1000"}', 'utf8').toString('hex');
+
+        await expect(insc.connect(user2).safeTransferFrom(user1.address, user2.address, tokenIdUser1_)).to.emit(insc, "Inscribe").withArgs(tokenIdUser1_,hexString);
+
+        await expect(insc.connect(user2).safeTransferFrom(user1.address, user2.address, tokenIdUser1)).to.emit(insc, "Inscribe").withArgs(tokenIdUser1, hexString);
+      });
     });
 
     describe("transfer", function () {
@@ -472,7 +500,79 @@ describe("INSC+", function () {
     });
 
     describe("waterToWine", function () {
-      
+      it("The ability of FT has not been granted", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await expect(insc.connect(user1).waterToWine(tokenIdUser1, tokenIdUser1_, 1)).to.be.revertedWith("The ability of FT has not been granted");
+      });
+      it("Is not yours", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await insc.connect(owner).openFT();
+        await expect(insc.connect(user2).waterToWine(tokenIdUser1, tokenIdUser1_, 1)).to.be.revertedWith("Is not yours");
+      });
+      it("Insufficient balance", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await insc.connect(owner).openFT();
+        await expect(insc.connect(user1).waterToWine(tokenIdUser1, tokenIdUser1_, 1001)).to.be.revertedWith("Insufficient balance");
+      });
+      it("Should succeed", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await insc.connect(owner).openFT();
+
+        const hexString = '0x' + Buffer.from('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"900"}', 'utf8').toString('hex');
+        const hexString_ = '0x' + Buffer.from('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1100"}', 'utf8').toString('hex');
+
+        await expect(insc.connect(user1).waterToWine(tokenIdUser1, tokenIdUser1_, 100)).to.emit(insc, "Inscribe").withArgs(tokenIdUser1,hexString).to.emit(insc, "Inscribe").withArgs(tokenIdUser1_, hexString_);
+
+        expect(await insc.balanceOf(user1.address)).to.be.equal(900);
+      });
     });
   });
 
