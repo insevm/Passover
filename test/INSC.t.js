@@ -54,7 +54,8 @@ describe("INSC+", function () {
     // ----------- Merkle Over -----------
 
     const userList = [user2, user3, user4, user5];
-    return { insc, name, symbol, maxSupply, mintLimit, tickNumberMax, owner, user1, user2, user3, user4, user5, userList, root, values, proofs};
+    const ZeroAddress = '0x0000000000000000000000000000000000000000';
+    return { insc, name, symbol, maxSupply, mintLimit, tickNumberMax, owner, user1, user2, user3, user4, user5, userList, root, values, proofs, ZeroAddress};
   }
 
   describe("Deployment", function () {
@@ -92,6 +93,77 @@ describe("INSC+", function () {
       const { insc, owner } = await loadFixture(deployINSCFixture);
 
       expect(await insc.owner()).to.equal(owner.address);
+    });
+  });
+
+  describe("Owner Access", function () {
+    describe("setMerkleRoot", function () {
+      it("Should revert with the right error if others called this function", async function () {
+        const { insc, user1 } = await loadFixture(deployINSCFixture);
+
+        const hash = ethers.keccak256(ethers.toUtf8Bytes('hello world!'))
+        await expect(insc.connect(user1).setMerkleRoot(hash)).to.be.revertedWithCustomError(insc, "OwnableUnauthorizedAccount");
+      });
+
+      it("Should succeed if the owner calls it", async function () {
+        const { insc, owner } = await loadFixture(deployINSCFixture);
+
+        const hash = ethers.keccak256(ethers.toUtf8Bytes('hello world!'))
+        await insc.connect(owner).setMerkleRoot(hash);
+        expect(await insc.root()).to.equal(hash);
+      });
+    });
+
+    describe("openFT", function () {
+      it("Should revert with the right error if others called this function", async function () {
+        const { insc, user1 } = await loadFixture(deployINSCFixture);
+
+        await expect(insc.connect(user1).openFT()).to.be.revertedWithCustomError(insc, "OwnableUnauthorizedAccount");
+      });
+
+      it("Should succeed if the owner calls it", async function () {
+        const { insc, owner } = await loadFixture(deployINSCFixture);
+
+        await insc.connect(owner).openFT();
+        expect(await insc.isFTOpen()).to.equal(true);
+      });
+    });
+
+    describe("openInscribe", function () {
+      it("Should revert with the right error if others called this function", async function () {
+        const { insc, user1 } = await loadFixture(deployINSCFixture);
+
+        await expect(insc.connect(user1).openInscribe()).to.be.revertedWithCustomError(insc, "OwnableUnauthorizedAccount");
+      });
+
+      it("Should succeed if the owner calls it", async function () {
+        const { insc, owner } = await loadFixture(deployINSCFixture);
+
+        await insc.connect(owner).openInscribe();
+        expect(await insc.isInscribeOpen()).to.equal(true);
+
+        await insc.connect(owner).openInscribe();
+        expect(await insc.isInscribeOpen()).to.equal(false);
+      });
+    });
+
+    describe("setRoyaltyRecipient", function () {
+      it("Should revert with the right error if others called this function", async function () {
+        const { insc, user1 } = await loadFixture(deployINSCFixture);
+
+        await expect(insc.connect(user1).setRoyaltyRecipient(user1.address)).to.be.revertedWithCustomError(insc, "OwnableUnauthorizedAccount");
+      });
+
+      it("Should succeed if the owner calls it", async function () {
+        const { insc, owner, ZeroAddress} = await loadFixture(deployINSCFixture);
+        [r,] = await insc.royaltyInfo(1, 100);
+        expect(r).to.equal(ZeroAddress);
+
+        await insc.connect(owner).setRoyaltyRecipient(owner.address);
+        [r,a] = await insc.royaltyInfo(1, 100);
+        expect(r).to.equal(owner.address);
+        expect(a).to.equal(3);
+      });
     });
   });
 

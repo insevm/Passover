@@ -314,7 +314,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   }
 
   function openInscribe() public onlyOwner {
-    isInscribeOpen = true;
+    isInscribeOpen = !isInscribeOpen;
   }
 
   function setRoyaltyRecipient(address r) public onlyOwner {
