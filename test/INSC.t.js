@@ -267,7 +267,7 @@ describe("INSC+", function () {
     });
 
     it("Should succeed if all conditions are met", async function () {
-      const { insc, owner, user1, root, values, proofs, mintLimit} = await loadFixture(deployINSCFixture);
+      const { insc, owner, user1, root, values, proofs, mintLimit, ZeroAddress} = await loadFixture(deployINSCFixture);
 
       await insc.connect(owner).setMerkleRoot(root);
       await insc.connect(owner).openInscribe();
@@ -279,6 +279,7 @@ describe("INSC+", function () {
       await expect(insc.connect(user1).inscribe(tokenIdUser1, proofUser1)).to.emit(insc, "Inscribe").withArgs(tokenIdUser1, hexString);
 
       // data status check
+      await expect(insc.balanceOf(ZeroAddress)).to.revertedWith("ERC20: address zero is not a valid owner")
       expect(await insc.balanceOf(user1.address)).to.equal(1);
       expect(await insc.tickNumber()).to.equal(1);
       expect(await insc.ownerOf(tokenIdUser1)).to.equal(user1.address);
@@ -381,10 +382,37 @@ describe("INSC+", function () {
         // only return the slot balance
         expect(await insc.balanceOf(user2.address)).to.be.equal(1000);
       });
+      it("FT: Approve", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await insc.connect(owner).openFT();
+
+        await expect(insc.connect(user2).transferFrom(user1.address, user2.address, 1000)).to.be.revertedWith("ERC20: insufficient allowance");
+
+        await insc.connect(user1).approve(user2.address, 1000);
+        expect(await insc.allowance(user1.address, user2.address)).to.be.equal(1000);
+        
+        await insc.connect(user2).transferFrom(user1.address, user2.address, 999);
+
+        expect(await insc.allowance(user1.address, user2.address)).to.be.equal(1);
+
+        await expect(insc.connect(user2).transferFrom(user1.address, user2.address, 1000)).to.be.revertedWith("ERC20: insufficient allowance");
+      });
     });
 
     describe("safeTransferFrom", function () {
-      it("Event check", async function () {
+      it.only("Event check", async function () {
         const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
   
         await insc.connect(owner).setMerkleRoot(root);
@@ -598,5 +626,12 @@ describe("INSC+", function () {
       await insc.connect(owner).openFT();
       console.log(await insc.tokenURI(tokenIdUser1));
     });
-  });  
+  });
+
+  describe("decimals", function () {
+    it("decimals", async function(){
+      const { insc } = await loadFixture(deployINSCFixture);
+      expect(await insc.decimals()).to.be.equal(0);
+    })
+  })
 })
