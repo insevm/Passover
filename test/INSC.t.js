@@ -29,7 +29,7 @@ describe("INSC+", function () {
       [user3.address, 10000],
       [user4.address, 10001],
       [user5.address, 10002],
-      [user6.address, 999],
+      [user1.address, 999],
       [user7.address, 998],
       [user8.address, 997],
       [user9.address, 996]
@@ -333,8 +333,49 @@ describe("INSC+", function () {
         expect(await insc.slotFT(user1.address)).to.equal(tokenIdUser1);
         expect(await insc.slotFT(user2.address)).to.equal(tokenIdUser1_);
       });
+      it("NFT: Approve", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
 
-      
+        await expect(insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1_)).to.be.revertedWithCustomError(insc, "ERC721InsufficientApproval");
+
+        await insc.connect(user1).approve(user2.address, tokenIdUser1_);
+        
+        await insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1_);
+
+        await expect(insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1)).to.be.revertedWithCustomError(insc, "ERC721InsufficientApproval");
+      });
+      it("NFT: ApproveForAll", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await expect(insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1_)).to.be.revertedWithCustomError(insc, "ERC721InsufficientApproval");
+
+        await insc.connect(user1).setApprovalForAll(user2.address, true);
+        
+        await insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1_);
+        await insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1);
+      });
     });
 
     describe("safeTransferFrom", function () {
