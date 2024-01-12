@@ -11,7 +11,7 @@ describe("INSC+", function () {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployINSCFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [deployer, owner, user1, user2, user3, user4, user5] = await ethers.getSigners();
+    const [deployer, owner, user1, user2, user3, user4, user5,user6,user7,user8,user9,user10,user11] = await ethers.getSigners();
 
     const name = "INSC Plus";
     const symbol = "INSC+";
@@ -28,7 +28,11 @@ describe("INSC+", function () {
       [user2.address, 1000], // test same tokenId
       [user3.address, 10000],
       [user4.address, 10001],
-      [user5.address, 10002]
+      [user5.address, 10002],
+      [user6.address, 999],
+      [user7.address, 998],
+      [user8.address, 997],
+      [user9.address, 996]
     ]
 
     // caculate leaves node
@@ -54,7 +58,9 @@ describe("INSC+", function () {
     // ----------- Merkle Over -----------
 
     const userList = [user2, user3, user4, user5];
-    return { insc, name, symbol, maxSupply, mintLimit, tickNumberMax, owner, user1, user2, user3, user4, user5, userList, root, values, proofs};
+    const userList2 = [user2, user3, user4, user5,user6,user7,user8,user9,user10,user11];
+    const ZeroAddress = '0x0000000000000000000000000000000000000000';
+    return { insc, name, symbol, maxSupply, mintLimit, tickNumberMax, owner, user1, user2, user3, user4, user5, userList, userList2, root, values, proofs, ZeroAddress};
   }
 
   describe("Deployment", function () {
@@ -92,6 +98,77 @@ describe("INSC+", function () {
       const { insc, owner } = await loadFixture(deployINSCFixture);
 
       expect(await insc.owner()).to.equal(owner.address);
+    });
+  });
+
+  describe("Owner Access", function () {
+    describe("setMerkleRoot", function () {
+      it("Should revert with the right error if others called this function", async function () {
+        const { insc, user1 } = await loadFixture(deployINSCFixture);
+
+        const hash = ethers.keccak256(ethers.toUtf8Bytes('hello world!'))
+        await expect(insc.connect(user1).setMerkleRoot(hash)).to.be.revertedWithCustomError(insc, "OwnableUnauthorizedAccount");
+      });
+
+      it("Should succeed if the owner calls it", async function () {
+        const { insc, owner } = await loadFixture(deployINSCFixture);
+
+        const hash = ethers.keccak256(ethers.toUtf8Bytes('hello world!'))
+        await insc.connect(owner).setMerkleRoot(hash);
+        expect(await insc.root()).to.equal(hash);
+      });
+    });
+
+    describe("openFT", function () {
+      it("Should revert with the right error if others called this function", async function () {
+        const { insc, user1 } = await loadFixture(deployINSCFixture);
+
+        await expect(insc.connect(user1).openFT()).to.be.revertedWithCustomError(insc, "OwnableUnauthorizedAccount");
+      });
+
+      it("Should succeed if the owner calls it", async function () {
+        const { insc, owner } = await loadFixture(deployINSCFixture);
+
+        await insc.connect(owner).openFT();
+        expect(await insc.isFTOpen()).to.equal(true);
+      });
+    });
+
+    describe("openInscribe", function () {
+      it("Should revert with the right error if others called this function", async function () {
+        const { insc, user1 } = await loadFixture(deployINSCFixture);
+
+        await expect(insc.connect(user1).openInscribe()).to.be.revertedWithCustomError(insc, "OwnableUnauthorizedAccount");
+      });
+
+      it("Should succeed if the owner calls it", async function () {
+        const { insc, owner } = await loadFixture(deployINSCFixture);
+
+        await insc.connect(owner).openInscribe();
+        expect(await insc.isInscribeOpen()).to.equal(true);
+
+        await insc.connect(owner).openInscribe();
+        expect(await insc.isInscribeOpen()).to.equal(false);
+      });
+    });
+
+    describe("setRoyaltyRecipient", function () {
+      it("Should revert with the right error if others called this function", async function () {
+        const { insc, user1 } = await loadFixture(deployINSCFixture);
+
+        await expect(insc.connect(user1).setRoyaltyRecipient(user1.address)).to.be.revertedWithCustomError(insc, "OwnableUnauthorizedAccount");
+      });
+
+      it("Should succeed if the owner calls it", async function () {
+        const { insc, owner, ZeroAddress} = await loadFixture(deployINSCFixture);
+        [r,] = await insc.royaltyInfo(1, 100);
+        expect(r).to.equal(ZeroAddress);
+
+        await insc.connect(owner).setRoyaltyRecipient(owner.address);
+        [r,a] = await insc.royaltyInfo(1, 100);
+        expect(r).to.equal(owner.address);
+        expect(a).to.equal(3);
+      });
     });
   });
 
@@ -212,4 +289,173 @@ describe("INSC+", function () {
       
     });
   });
+
+  describe("Transfer", function () {
+    describe("transferFrom", function () {
+      it("NFT: Slot can only be transferred at the end", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await expect(insc.connect(user1).transferFrom(user1.address, user2.address, tokenIdUser1)).to.be.revertedWith("Slot can only be transferred at the end");
+      });
+
+      it("NFT: Should succeed", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        // event check
+        const hexString = '0x' + Buffer.from('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1000"}', 'utf8').toString('hex');
+        await expect(insc.connect(user1).transferFrom(user1.address, user2.address, tokenIdUser1_)).to.emit(insc, "Inscribe").withArgs(tokenIdUser1_, hexString);
+
+        // data status check
+        expect(await insc.balanceOf(user1.address)).to.equal(1);
+        expect(await insc.balanceOf(user2.address)).to.equal(1);
+        expect(await insc.slotFT(user1.address)).to.equal(tokenIdUser1);
+        expect(await insc.slotFT(user2.address)).to.equal(tokenIdUser1_);
+      });
+
+      
+    });
+
+    describe("safeTransferFrom", function () {
+      
+    });
+
+    describe("transfer", function () {
+      it("The ability of FT has not been granted", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await expect(insc.connect(user1).transfer(user2.address, 1)).to.be.revertedWith("The ability of FT has not been granted");
+      });
+      it("The sender must own a slot", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+
+        await insc.connect(owner).openFT();
+
+        await expect(insc.connect(user2).transfer(user1.address, 1)).to.be.revertedWith("The sender must own a slot");
+      });
+      it("The number of slots has reached the limit", async function () {
+        const { insc, owner, userList2, maxSupply, mintLimit, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        for (let i = 0; i < maxSupply / mintLimit; i++) {
+          const [, tokenIdUserI] = values[i + 1];
+          const proofUserI = proofs[i + 1];
+          await insc.connect(userList2[i]).inscribe(tokenIdUserI, proofUserI);
+        }
+  
+        await insc.connect(owner).openFT();
+
+        for (let i = maxSupply / mintLimit; i < userList2.length - 1; i++) {
+          await insc.connect(userList2[0]).transfer(userList2[i].address, 1)
+        }
+
+        await expect(insc.connect(userList2[0]).transfer(userList2[userList2.length - 1].address, 1)).to.be.revertedWith("The number of slots has reached the limit");
+      });
+      it("Insufficient balance", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const proofUser1 = proofs[0];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+
+        await insc.connect(owner).openFT();
+
+        await expect(insc.connect(user1).transfer(user2.address, 1001)).to.be.revertedWith("Insufficient balance");
+      });
+      it("Should succeed", async function () {
+        const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
+  
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+  
+        const [, tokenIdUser1] = values[0];
+        const proofUser1 = proofs[0];
+  
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+
+        await insc.connect(owner).openFT();
+
+        const hexString = '0x' + Buffer.from('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"0"}', 'utf8').toString('hex');
+        const hexString_ = '0x' + Buffer.from('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1000"}', 'utf8').toString('hex');
+        await expect(insc.connect(user1).transfer(user2.address, 1000)).to.emit(insc,"Inscribe").withArgs(tokenIdUser1, hexString).to.emit(insc,"Inscribe").withArgs(1, hexString_).to.emit(insc,"Transfer").withArgs(user1.address,user2.address,1000);
+      });
+    });
+
+    describe("waterToWine", function () {
+      
+    });
+  });
+
+  describe("tokenURI", function () {
+    it("Should revert if the tokenId is not minted", async function () {
+      const { insc } = await loadFixture(deployINSCFixture);
+
+      await expect(insc.tokenURI(1)).to.revertedWithCustomError(insc, "ERC721NonexistentToken");
+    });
+
+    it("TokenURI should succeed", async function () {
+      const { insc, owner, user1, root, values, proofs } = await loadFixture(deployINSCFixture);
+
+      await insc.connect(owner).setMerkleRoot(root);
+      await insc.connect(owner).openInscribe();
+
+      const [, tokenIdUser1] = values[0];
+      const proofUser1 = proofs[0];
+      await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+
+      console.log(await insc.tokenURI(tokenIdUser1));
+
+      await insc.connect(owner).openFT();
+      console.log(await insc.tokenURI(tokenIdUser1));
+    });
+  });  
 })

@@ -185,13 +185,13 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
 
     emit Transfer(from, to, value);
     emit Inscribe(slotFT[from], bytes(string.concat(
-        '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
+        'data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
         _balancesIns[slotFT[from]].toString(),
         '"}'
       ))
     );
     emit Inscribe(slotFT[to], bytes(string.concat(
-        '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
+        'data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
         _balancesIns[slotFT[to]].toString(),
         '"}'
       ))
@@ -215,13 +215,13 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     _balancesIns[to] += amount; 
 
     emit Inscribe(from, bytes(string.concat(
-        '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
+        'data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
         _balancesIns[from].toString(),
         '"}'
       ))
     );
     emit Inscribe(to, bytes(string.concat(
-        '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
+        'data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
         _balancesIns[to].toString(),
         '"}'
       ))
@@ -232,7 +232,6 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   function transferFrom(address from, address to, uint256 tokenIdOrAmount) public override(ERC721,IERC20) returns(bool) {
     if(!isFTOpen) {
       // Moved the contents of 'recordSlot modify' here.
-      if (from == address(0)) _balancesIns[tokenIdOrAmount] = mintLimit; // TODO: need to take a look at this line of code to determine if it is still necessary to exist.
       
       if (from != address(0) && slotFT[from] == tokenIdOrAmount){
         require(balanceOf(from) == 1, "Slot can only be transferred at the end");
@@ -271,8 +270,9 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   
   /// @dev Will close this function in the future.
   function tokenURI(
-    uint256 tokenID
+    uint256 tokenId
   ) public view override returns (string memory) {
+    _requireOwned(tokenId);
     string memory output = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"> <style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="black" /><text x="100" y="100" class="base">{</text><text x="130" y="130" class="base">"p":"ins-20",</text><text x="130" y="160" class="base">"op":"mint",</text><text x="130" y="190" class="base">"tick":"insc",</text><text x="130" y="220" class="base">"amt":1000</text><text x="100" y="250" class="base">}</text></svg>';
 
     string memory json = Base64.encode(
@@ -287,7 +287,23 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
       )
     );
     output = string(abi.encodePacked("data:application/json;base64,", json));
-    return isFTOpen ? "Not support tokenURI any more." : output;
+
+    string memory output0 = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"> <style> .base { fill: white; font-family: serif; font-size: 14px; } </style> <rect width="100%" height="100%" fill="black" /> <text x="10" y="100" class="base">{</text> <text x="30" y="130" class="base">"tokenId": 0,</text> <text x="30" y="160" class="base">"Description": "The holder of INSC+ #0 will continue</text> <text x="30" y="190" class="base">to keep vigil, until this prophecy (Ezekiel 37:15-28)</text> <text x="30" y="220" class="base"> is fulfilled."</text> <text x="10" y="250" class="base">}</text> </svg>';
+    string memory json0 = Base64.encode(
+      bytes(
+        string(
+          abi.encodePacked(
+            '{"description": "INS20 is a social experiment, a first attempt to practice inscription within the EVM.", "image": "data:image/svg+xml;base64,',
+            Base64.encode(bytes(output0)),
+            '"}'
+          )
+        )
+      )
+    );
+    output0 = string(abi.encodePacked("data:application/json;base64,", json0));
+
+
+    return isFTOpen ? output0 : output;
   }
 
   /**
@@ -314,7 +330,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   }
 
   function openInscribe() public onlyOwner {
-    isInscribeOpen = true;
+    isInscribeOpen = !isInscribeOpen;
   }
 
   function setRoyaltyRecipient(address r) public onlyOwner {
