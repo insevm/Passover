@@ -185,13 +185,13 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
 
     emit Transfer(from, to, value);
     emit Inscribe(slotFT[from], bytes(string.concat(
-        '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
+        'data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
         _balancesIns[slotFT[from]].toString(),
         '"}'
       ))
     );
     emit Inscribe(slotFT[to], bytes(string.concat(
-        '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
+        'data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
         _balancesIns[slotFT[to]].toString(),
         '"}'
       ))
@@ -215,13 +215,13 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     _balancesIns[to] += amount; 
 
     emit Inscribe(from, bytes(string.concat(
-        '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
+        'data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
         _balancesIns[from].toString(),
         '"}'
       ))
     );
     emit Inscribe(to, bytes(string.concat(
-        '{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
+        'data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"',
         _balancesIns[to].toString(),
         '"}'
       ))
@@ -232,7 +232,6 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   function transferFrom(address from, address to, uint256 tokenIdOrAmount) public override(ERC721,IERC20) returns(bool) {
     if(!isFTOpen) {
       // Moved the contents of 'recordSlot modify' here.
-      if (from == address(0)) _balancesIns[tokenIdOrAmount] = mintLimit; // TODO: need to take a look at this line of code to determine if it is still necessary to exist.
       
       if (from != address(0) && slotFT[from] == tokenIdOrAmount){
         require(balanceOf(from) == 1, "Slot can only be transferred at the end");
