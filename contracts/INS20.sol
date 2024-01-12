@@ -132,7 +132,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     require(spender != address(0), "ERC20: approve to the zero address");
 
     _allowances[owner][spender] = amount;
-    if(isFTOpen) emit Approval(owner, spender, amount);
+    emit Approval(owner, spender, amount);
   }
 
   function approve(
