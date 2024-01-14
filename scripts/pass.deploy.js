@@ -7,14 +7,16 @@
 const hre = require("hardhat");
 
 async function main() {
-  const insc = await hre.ethers.deployContract("INS20", [], {
+  const vault = process.env.vault_test;
+  const owner = process.env.owner_test;
+  const passover = await hre.ethers.deployContract("Passover", ["Debt ETH of INSC", "Debt-ETH", vault, owner], {
     value: 0,
   });
 
-  await insc.waitForDeployment();
+  await passover.waitForDeployment();
 
   console.log(
-    `INSC deployed to ${insc.target}`
+    `Passover deployed to ${passover.target}`
   );
 }
 
