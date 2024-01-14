@@ -58,7 +58,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     
     address owner = msg.sender;
     // merkle verify
-    bytes32 leaf = keccak256(abi.encode(owner, tokenId));
+    bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(owner, tokenId))));
     require(
       MerkleProof.verify(proofs, root, leaf),
       "Merkle verification failed"

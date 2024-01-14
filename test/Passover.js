@@ -4,9 +4,32 @@ const {
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { MerkleTree } = require('merkletreejs');
+// const { MerkleTree } = require('merkletreejs');
+const { StandardMerkleTree } = require("@openzeppelin/merkle-tree");
 
 describe("Passover", function () {
+  async function caculateRoot() {
+    // ----------- Merkle -----------
+
+    const values = [
+      [11513, "0x8218afb0a08b1a6f7814a60adc47ff894c9040a7", "90000000000000000", "0x7fa999a66d38bd74e2b9bb37e3b1029f3dfdd26b2b16d146f5fe2ae24c54fd71", 1],
+      [7006, "0x8218afb0a08b1a6f7814a60adc47ff894c9040a7", "90000000000000000", "0x7fa999a66d38bd74e2b9bb37e3b1029f3dfdd26b2b16d146f5fe2ae24c54fd71", 2],
+      [1739, "0x63990e599e6e4022f7d5a3c3516941f5a95e3e00", "94900000000000000", "0x5fae471436fc6f7aa9024816a2961b363daaead32aeafaef1dc73007f9a73bc5", 3],
+      [13474, "0xc019e26b8c3bcc89c060110e079b463cf105dca9", "90300000000000000", "0x554efc4968218a1ab69ee2b235898e63bbc5dbccef3a7b631c219a8a43803259", 4],
+      [9261, "0x407da16444ba35f4e0416143032ee72b2b093e09", "90000000000000000", "0xb7090b877821d7b40c2c471fc7db1ab89bf334e66cd671875b377139f996b4f9", 5]
+    ]
+    // oz
+    const tree = StandardMerkleTree.of(values, ["uint256", "address", "uint256", "bytes32", "uint256"]);
+    console.log('OZ Merkle Root:', tree.root);
+    console.log(JSON.stringify(tree.dump()));
+
+    // calculate merkle proof of leaf
+    let proofs = [];
+    for (const [i, v] of tree.entries()) {
+      proofs.push(tree.getProof(i));
+    }
+    console.log(proofs);
+  }
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -26,26 +49,33 @@ describe("Passover", function () {
       [10001, user4.address, 2000000, "0x65cf0417d8717af8f203f5fca3db2cda6f6636b104500661a5eb57a4e54813c5", 1],
       [10002, user5.address, 3000000, "0x314cb864a3c92dcc0917e30366f2126cfd136280b050174785befc5ba42cfeed", 2]
     ]
+    const tree = StandardMerkleTree.of(values, ["uint256", "address", "uint256", "bytes32", "uint256"]);
+    let root = tree.root;
+
+    let proofs = [];
+    for (const [i, v] of tree.entries()) {
+      proofs.push(tree.getProof(i));
+    }
 
     // caculate leaves node
-    let leaves = [];
-    for (let i = 0; i < values.length; i++) {
-      const types = ["uint256", "address", "uint256", "bytes32", "uint256"];
-      const encoded = ethers.AbiCoder.defaultAbiCoder().encode(types, values[i]);
+    // let leaves = [];
+    // for (let i = 0; i < values.length; i++) {
+    //   const types = ["uint256", "address", "uint256", "bytes32", "uint256"];
+    //   const encoded = ethers.AbiCoder.defaultAbiCoder().encode(types, values[i]);
         
-      const leaf = ethers.keccak256(encoded);
-      leaves.push(leaf);
-    }
-    let tree = new MerkleTree(leaves, ethers.keccak256, { sort: true });
+    //   const leaf = ethers.keccak256(encoded);
+    //   leaves.push(leaf);
+    // }
+    // let tree = new MerkleTree(leaves, ethers.keccak256, { sort: true });
     // get root
-    let root = tree.getHexRoot();
+    // let root = tree.getHexRoot();
 
     // calculate merkle proof of leaf
-    let proofs = [];
-    for (let index = 0; index < leaves.length; index++) {
-        const leaf = leaves[index];
-        proofs.push(tree.getHexProof(leaf));
-    }
+    // let proofs = [];
+    // for (let index = 0; index < leaves.length; index++) {
+    //     const leaf = leaves[index];
+    //     proofs.push(tree.getHexProof(leaf));
+    // }
 
     // ----------- Merkle Over -----------
 

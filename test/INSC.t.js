@@ -4,6 +4,7 @@ const {
 const { MerkleTree } = require('merkletreejs');
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { StandardMerkleTree } = require("@openzeppelin/merkle-tree");
 
 describe("INSC+", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -36,23 +37,13 @@ describe("INSC+", function () {
     ]
 
     // caculate leaves node
-    let leaves = [];
-    for (let i = 0; i < values.length; i++) {
-      const types = ["address", "uint256"];
-      const encoded = ethers.AbiCoder.defaultAbiCoder().encode(types, values[i]);
-        
-      const leaf = ethers.keccak256(encoded);
-      leaves.push(leaf);
-    }
-    let tree = new MerkleTree(leaves, ethers.keccak256, { sort: true });
-    // get root
-    let root = tree.getHexRoot();
+    const types = ["address", "uint256"];
+    const tree = StandardMerkleTree.of(values, types);
+    let root = tree.root;
 
-    // calculate merkle proof of leaf
     let proofs = [];
-    for (let index = 0; index < leaves.length; index++) {
-      const leaf = leaves[index];
-      proofs.push(tree.getHexProof(leaf));
+    for (const [i, v] of tree.entries()) {
+      proofs.push(tree.getProof(i));
     }
 
     // ----------- Merkle Over -----------
@@ -412,7 +403,7 @@ describe("INSC+", function () {
     });
 
     describe("safeTransferFrom", function () {
-      it.only("Event check", async function () {
+      it("Event check", async function () {
         const { insc, owner, user1, user2, root, values, proofs} = await loadFixture(deployINSCFixture);
   
         await insc.connect(owner).setMerkleRoot(root);
