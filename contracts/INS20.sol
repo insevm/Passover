@@ -204,6 +204,8 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
 
   /// @notice You can freely transfer the balances of multiple inscriptions into one, including slots.
   /// @dev If compatibility with existing DeFi is not considered, the storage and computation of balance here would be unnecessary.
+  /// @param froms Multiple inscriptions with a decreased balance
+  /// @param to Inscription with a increased balance
   function waterToWine(WTW[] calldata froms, uint256 to) public {
     require(isFTOpen, "The ability of FT has not been granted");
     require(froms.length <= 500, "You drink too much!");
@@ -238,6 +240,12 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     );
   }
 
+  /// @notice You can freely transfer the balances between any two of your inscriptions, including slots.
+  /// @notice The inspiration comes from the first miracle of Jesus as described in John 2:1-12.
+  /// @dev If compatibility with existing DeFi is not considered, the storage and computation of balance here would be unnecessary.
+  /// @param from Inscription with a decreased balance
+  /// @param to Inscription with a increased balance
+  /// @param amount The value you gonna transfer
   function waterToWine(uint256 from, uint256 to, uint256 amount) public {
     require(isFTOpen, "The ability of FT has not been granted");
     _waterToWine(from, to, amount);
@@ -267,7 +275,8 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     );
   }
   
-  /// @dev embed Inscribe event into Transfer of ERC721
+  /// @notice If the FT switch is not yet turned on, only NFT transactions can be conducted here. If the FT switch is activated, only FT transactions will be possible, and NFT transactions should be made through the 'safeTransferFrom' function.
+  /// @dev Embed Inscribe event into Transfer of ERC721
   function transferFrom(address from, address to, uint256 tokenIdOrAmount) public override(ERC721,IERC20) returns(bool) {
     if(!isFTOpen) {
       // Moved the contents of 'recordSlot modify' here.
@@ -293,11 +302,13 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     return true;
   }
 
+  /// @notice This place will always support the trading of NFTs.
   /// @dev embed Inscribe event into Transfer of ERC721
   function safeTransferFrom(address from, address to, uint256 tokenId) public override {
     safeTransferFrom(from, to, tokenId, "");
   }
 
+  /// @notice This place will always support the trading of NFTs.
   /// @dev embed Inscribe event into Transfer of ERC721
   function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public override recordSlot(from, to, tokenId){
     ERC721.safeTransferFrom(from, to, tokenId, data);
@@ -307,7 +318,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     }
   }
   
-  /// @dev Will close this function in the future.
+  /// @dev When the FT switch is turned on, this function will emit a prophecy.
   function tokenURI(
     uint256 tokenId
   ) public view override returns (string memory) {
