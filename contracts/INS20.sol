@@ -364,7 +364,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
     uint256 tokenId,
     uint256 salePrice
   ) external view returns (address receiver, uint256 royaltyAmount) {
-    return (_royaltyRecipient, salePrice * 3 / 100);
+    return (_royaltyRecipient, salePrice * 5 / 1000);
   }
 
   /**
@@ -376,6 +376,7 @@ contract INS20 is IERC7583, ERC721, Ownable, IERC20, IERC2981{
   }
 
   function openFT() public onlyOwner {
+    require(tickNumber * mintLimit >= maxSupply, "Must reach the upper limit before it can be opened");
     isFTOpen = true;
   }
 
