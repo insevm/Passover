@@ -114,13 +114,41 @@ describe("INSC+", function () {
 
     describe("openFT", function () {
       it("Should revert with the right error if others called this function", async function () {
-        const { insc, user1 } = await loadFixture(deployINSCFixture);
+        const { insc, owner, user1, root, values, proofs } = await loadFixture(deployINSCFixture);
+
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+        const proofUser1_10 = proofs[10];
+
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await expect(insc.connect(user1).openFT()).to.be.revertedWithCustomError(insc, "OwnableUnauthorizedAccount");
       });
 
       it("Should succeed if the owner calls it", async function () {
-        const { insc, owner } = await loadFixture(deployINSCFixture);
+        const { insc, owner, user1, root, values, proofs } = await loadFixture(deployINSCFixture);
+
+        await insc.connect(owner).setMerkleRoot(root);
+        await insc.connect(owner).openInscribe();
+
+        const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
+        const proofUser1 = proofs[0];
+        const proofUser1_ = proofs[5];
+        const proofUser1_10 = proofs[10];
+
+        await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await insc.connect(owner).openFT();
         expect(await insc.isFTOpen()).to.equal(true);
@@ -158,9 +186,9 @@ describe("INSC+", function () {
         expect(r).to.equal(ZeroAddress);
 
         await insc.connect(owner).setRoyaltyRecipient(owner.address);
-        [r,a] = await insc.royaltyInfo(1, 100);
+        [r,a] = await insc.royaltyInfo(1, 1000);
         expect(r).to.equal(owner.address);
-        expect(a).to.equal(3);
+        expect(a).to.equal(5);
       });
     });
   });
@@ -357,18 +385,21 @@ describe("INSC+", function () {
   
         const [, tokenIdUser1] = values[0];
         const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
         const proofUser1 = proofs[0];
         const proofUser1_ = proofs[5];
-  
+        const proofUser1_10 = proofs[10];
+
         await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
         await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await expect(insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1_)).to.be.revertedWithCustomError(insc, "ERC721InsufficientApproval");
 
         await insc.connect(user1).setApprovalForAll(user2.address, true);
         
         await insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1_);
-        await insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1);
+        await insc.connect(user2).transferFrom(user1.address, user2.address, tokenIdUser1_10);
 
         expect(await insc.balanceOf(user2.address)).to.be.equal(2);
         await insc.connect(owner).openFT();
@@ -383,11 +414,14 @@ describe("INSC+", function () {
   
         const [, tokenIdUser1] = values[0];
         const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
         const proofUser1 = proofs[0];
         const proofUser1_ = proofs[5];
-  
+        const proofUser1_10 = proofs[10];
+
         await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
         await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await insc.connect(owner).openFT();
 
@@ -456,11 +490,14 @@ describe("INSC+", function () {
   
         const [, tokenIdUser1] = values[0];
         const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
         const proofUser1 = proofs[0];
         const proofUser1_ = proofs[5];
-  
+        const proofUser1_10 = proofs[10];
+
         await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
         await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await insc.connect(owner).openFT();
 
@@ -493,9 +530,15 @@ describe("INSC+", function () {
         await insc.connect(owner).openInscribe();
   
         const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
         const proofUser1 = proofs[0];
-  
+        const proofUser1_ = proofs[5];
+        const proofUser1_10 = proofs[10];
+
         await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await insc.connect(owner).openFT();
 
@@ -508,15 +551,21 @@ describe("INSC+", function () {
         await insc.connect(owner).openInscribe();
   
         const [, tokenIdUser1] = values[0];
+        const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
         const proofUser1 = proofs[0];
-  
+        const proofUser1_ = proofs[5];
+        const proofUser1_10 = proofs[10];
+
         await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+        await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await insc.connect(owner).openFT();
 
         const hexString = '0x' + Buffer.from('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"0"}', 'utf8').toString('hex');
         const hexString_ = '0x' + Buffer.from('data:text/plain;charset=utf-8,{"p":"ins-20","op":"transfer","tick":"INSC+","amt":"1000"}', 'utf8').toString('hex');
-        await expect(insc.connect(user1).transfer(user2.address, 1000)).to.emit(insc,"Inscribe").withArgs(tokenIdUser1, hexString).to.emit(insc,"Inscribe").withArgs(1, hexString_).to.emit(insc,"Transfer").withArgs(user1.address,user2.address,1000);
+        await expect(insc.connect(user1).transfer(user2.address, 1000)).to.emit(insc,"Inscribe").withArgs(tokenIdUser1, hexString).to.emit(insc,"Inscribe").withArgs(3, hexString_).to.emit(insc,"Transfer").withArgs(user1.address,user2.address,1000);
       });
     });
 
@@ -545,11 +594,14 @@ describe("INSC+", function () {
   
         const [, tokenIdUser1] = values[0];
         const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
         const proofUser1 = proofs[0];
         const proofUser1_ = proofs[5];
+        const proofUser1_10 = proofs[10];
   
         await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
         await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await insc.connect(owner).openFT();
         await expect(insc.connect(user2).waterToWine(ethers.Typed.uint256(tokenIdUser1), ethers.Typed.uint256(tokenIdUser1_), ethers.Typed.uint256(1))).to.be.revertedWith("Is not yours");
@@ -562,11 +614,14 @@ describe("INSC+", function () {
   
         const [, tokenIdUser1] = values[0];
         const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
         const proofUser1 = proofs[0];
         const proofUser1_ = proofs[5];
+        const proofUser1_10 = proofs[10];
   
         await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
         await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await insc.connect(owner).openFT();
         await expect(insc.connect(user1).waterToWine(ethers.Typed.uint256(tokenIdUser1), ethers.Typed.uint256(tokenIdUser1_), ethers.Typed.uint256(1001))).to.be.revertedWith("Insufficient balance");
@@ -579,11 +634,14 @@ describe("INSC+", function () {
   
         const [, tokenIdUser1] = values[0];
         const [, tokenIdUser1_] = values[5];
+        const [, tokenIdUser1_10] = values[10];
         const proofUser1 = proofs[0];
         const proofUser1_ = proofs[5];
+        const proofUser1_10 = proofs[10];
   
         await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
         await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+        await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
         await insc.connect(owner).openFT();
 
@@ -640,8 +698,15 @@ describe("INSC+", function () {
       await insc.connect(owner).openInscribe();
 
       const [, tokenIdUser1] = values[0];
+      const [, tokenIdUser1_] = values[5];
+      const [, tokenIdUser1_10] = values[10];
       const proofUser1 = proofs[0];
+      const proofUser1_ = proofs[5];
+      const proofUser1_10 = proofs[10];
+
       await insc.connect(user1).inscribe(tokenIdUser1, proofUser1);
+      await insc.connect(user1).inscribe(tokenIdUser1_, proofUser1_);
+      await insc.connect(user1).inscribe(tokenIdUser1_10, proofUser1_10);
 
       console.log(await insc.tokenURI(tokenIdUser1));
 
